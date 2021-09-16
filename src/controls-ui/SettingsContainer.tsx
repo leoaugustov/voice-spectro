@@ -305,7 +305,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         startIcon={<MicIcon />}
                         disabled={playState !== 'stopped'}
                     >
-                        Record from mic
+                        Gravar do microfone
                     </Button>
                     {playState === 'loading-mic' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
@@ -327,7 +327,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         startIcon={<AudiotrackIcon />}
                         disabled={playState !== 'stopped'}
                     >
-                        Play audio file
+                        Tocar arquivo de áudio
                     </Button>
                     {playState === 'loading-file' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
@@ -343,14 +343,14 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     startIcon={<StopIcon />}
                     disabled={playState !== 'playing'}
                 >
-                    Stop
+                    Parar
                 </Button>
 
                 <Divider className={classes.divider} />
 
                 <SensitivitySlider
                     nameLabelId="sensitivity-slider-label"
-                    nameLabel="Sensitivity"
+                    nameLabel="Sensibilidade"
                     min={0}
                     max={1}
                     step={0.001}
@@ -359,7 +359,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                 />
                 <ContrastSlider
                     nameLabelId="contrast-slider-label"
-                    nameLabel="Contrast"
+                    nameLabel="Contraste"
                     min={0}
                     max={1}
                     step={0.001}
@@ -377,7 +377,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                 />
                 <MinFrequencySlider
                     nameLabelId="min-freq-slider-label"
-                    nameLabel="Min. frequency"
+                    nameLabel="Frequência mínima"
                     min={hzToMel(0)}
                     max={hzToMel(20000)}
                     step={1}
@@ -386,7 +386,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                 />
                 <MaxFrequencySlider
                     nameLabelId="max-freq-slider-label"
-                    nameLabel="Max. frequency"
+                    nameLabel="Frequência máxima"
                     min={hzToMel(0)}
                     max={hzToMel(20000)}
                     step={1}
@@ -394,7 +394,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     onChange={onMaxFreqChange}
                 />
                 <FormControl className={classes.select}>
-                    <InputLabel id="scale-select-label">Frequency scale</InputLabel>
+                    <InputLabel id="scale-select-label">Escala de frequência</InputLabel>
                     <Select
                         labelId="scale-select-label"
                         id="scale-select"
@@ -406,7 +406,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     </Select>
                 </FormControl>
                 <FormControl className={classes.select}>
-                    <InputLabel id="gradient-select-label">Colour</InputLabel>
+                    <InputLabel id="gradient-select-label">Cor</InputLabel>
                     <Select
                         labelId="gradient-select-label"
                         id="gradient-select"
@@ -427,7 +427,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     onClick={onClearSpectrogram}
                     startIcon={<ClearIcon />}
                 >
-                    Clear spectrogram
+                    Limpar espectrograma
                 </Button>
             </>
         );
@@ -446,7 +446,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                                 onClick={openSettings}
                                 disableElevation
                             >
-                                Settings
+                                Configurações
                             </Button>
                             <Drawer
                                 anchor="bottom"
@@ -468,9 +468,9 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                                             onClick={closeSettings}
                                             className={classes.closeButton}
                                         >
-                                            <CloseIcon />
+                                        <CloseIcon />
                                         </IconButton>
-                                        <Typography variant="subtitle1">Settings</Typography>
+                                        <Typography variant="subtitle1">Configurações</Typography>
                                     </div>
                                     {content}
                                 </Paper>
