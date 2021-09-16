@@ -147,9 +147,9 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             contrast: 0.5,
             zoom: 4,
             minFrequency: 10,
-            maxFrequency: 12000,
-            scale: 'mel' as Scale,
-            gradient: 'Heated Metal',
+            maxFrequency: 6500,
+            scale: 'linear' as Scale,
+            gradient: 'Black to White',
         });
 
         const classes = useStyles();
