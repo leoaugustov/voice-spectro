@@ -470,7 +470,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                                         >
                                         <CloseIcon />
                                         </IconButton>
-                                        <Typography variant="subtitle1">Configurações</Typography>
+                                        <Typography variant="body1">Configurações</Typography>
                                     </div>
                                     {content}
                                 </Paper>
