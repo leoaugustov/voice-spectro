@@ -114,10 +114,7 @@ const formatHz = (hz: number) => {
 };
 
 const formatPercentage = (value: number) => {
-    if (value * 100 >= 999.5) {
-        return `${(value * 100).toPrecision(4)}%`;
-    }
-    return `${(value * 100).toPrecision(3)}%`;
+    return `${(value * 100).toFixed(0)}%`;
 };
 
 export type PlayState = 'stopped' | 'loading-file' | 'loading-mic' | 'playing';
@@ -353,7 +350,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     nameLabel="Sensibilidade"
                     min={0}
                     max={1}
-                    step={0.001}
+                    step={0.01}
                     defaultValue={defaultParameters.sensitivity}
                     onChange={onSensitivityChange}
                 />
@@ -362,7 +359,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     nameLabel="Contraste"
                     min={0}
                     max={1}
-                    step={0.001}
+                    step={0.01}
                     defaultValue={defaultParameters.contrast}
                     onChange={onContrastChange}
                 />
