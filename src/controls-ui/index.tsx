@@ -5,7 +5,7 @@ import { RenderParameters } from '../spectrogram-render';
 
 import generateSettingsContainer from './SettingsContainer';
 
-export default function initialiseControlsUi(
+export default function initializeControlsUi(
     container: Element,
     props: {
         stopCallback: () => void;

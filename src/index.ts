@@ -1,6 +1,6 @@
 import debounce from 'lodash.debounce';
 
-import initialiseControlsUi from './controls-ui';
+import initializeControlsUi from './controls-ui';
 import { Circular2DBuffer } from './math-util';
 import { SpectrogramGPURenderer, RenderParameters } from './spectrogram-render';
 import { offThreadGenerateSpectrogram } from './worker-util';
@@ -315,7 +315,7 @@ let globalAudioCtx: AudioContext | null = null;
     } = await spectrogramCallbacksPromise;
     if (controlsContainer !== null) {
         let stopCallback: (() => void) | null = null;
-        const setPlayState = initialiseControlsUi(controlsContainer, {
+        const setPlayState = initializeControlsUi(controlsContainer, {
             stopCallback: () => {
                 if (stopCallback !== null) {
                     stopCallback();
