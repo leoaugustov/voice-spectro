@@ -19,6 +19,7 @@ import CloseIcon from '@material-ui/icons/Close';
 import MicIcon from '@material-ui/icons/Mic';
 import SettingsIcon from '@material-ui/icons/Settings';
 import StopIcon from '@material-ui/icons/Stop';
+import PauseIcon from '@material-ui/icons/Pause';
 import React, {
     ChangeEvent,
     MouseEvent,
@@ -117,7 +118,11 @@ const formatPercentage = (value: number) => {
     return `${Math.floor(value * 100)}%`;
 };
 
-export type PlayState = 'stopped' | 'loading-file' | 'loading-mic' | 'playing';
+const isPlayingFromMic = (playState: PlayState) => {
+    return playState === 'playing-from-mic' || playState === 'playing-from-mic-again';
+}
+
+export type PlayState = 'stopped' | 'paused' | 'loading-file' | 'loading-mic' | 'playing-from-mic' | 'playing-from-mic-again' | 'playing-from-file';
 
 export interface SettingsContainerProps {
     onStop: () => void;
@@ -168,15 +173,20 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         const [MaxFrequencySlider, setMaxFrequency] = useMemo(generateLabelledSlider, []);
 
         const onPlayMicrophoneClick = useCallback(() => {
-            setPlayState('loading-mic');
+            if(playState !== 'paused') {
+                onClearSpectrogram();
+                setPlayState('loading-mic');
+            }
             onRenderFromMicrophone();
-        }, [onRenderFromMicrophone, setPlayState]);
+        }, [onRenderFromMicrophone, onClearSpectrogram, setPlayState, playState]);
+
         const onPlayFileClick = useCallback(() => {
             if (fileRef.current === null) {
                 return;
             }
             fileRef.current.click();
         }, [fileRef]);
+
         const onFileChange = useCallback(() => {
             if (
                 fileRef.current === null ||
@@ -195,17 +205,20 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                 }
 
                 if (reader.result instanceof ArrayBuffer) {
+                    onClearSpectrogram();
                     onRenderFromFile(reader.result);
                 } else {
                     setPlayState('stopped');
                 }
             });
             reader.readAsArrayBuffer(file);
-        }, [fileRef, setPlayState, onRenderFromFile]);
+        }, [fileRef, setPlayState, onRenderFromFile, onClearSpectrogram]);
+
         const onStopClick = useCallback(() => {
             onStop();
-            setPlayState('stopped');
-        }, [setPlayState]);
+            setPlayState(isPlayingFromMic(playState) ? 'paused' : 'stopped');
+        }, [setPlayState, playState]);
+
         const onSensitivityChange = useCallback(
             (value: number) => {
                 defaultParameters.sensitivity = value;
@@ -215,6 +228,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate, setSensitivity]
         );
+
         const onContrastChange = useCallback(
             (value: number) => {
                 defaultParameters.contrast = value;
@@ -224,6 +238,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate, setSensitivity]
         );
+
         const onZoomChange = useCallback(
             (value: number) => {
                 defaultParameters.zoom = value;
@@ -232,6 +247,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate, setSensitivity]
         );
+
         const onMinFreqChange = useCallback(
             (value: number) => {
                 const hz = melToHz(value);
@@ -241,6 +257,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate, setSensitivity]
         );
+
         const onMaxFreqChange = useCallback(
             (value: number) => {
                 const hz = melToHz(value);
@@ -250,6 +267,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate, setSensitivity]
         );
+
         const onScaleChange = useCallback(
             (event: ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
                 if (typeof event.target.value === 'string') {
@@ -259,6 +277,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             },
             [onRenderParametersUpdate]
         );
+
         const onGradientChange = useCallback(
             (event: ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
                 if (typeof event.target.value === 'string') {
@@ -273,7 +292,14 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         );
 
         useEffect(() => {
-            setPlayStateExport = setPlayState;
+            setPlayStateExport = (playState) => {
+                setPlayState(previousPlayState => {
+                    if (previousPlayState === 'paused' && playState === 'playing-from-mic') {
+                        return 'playing-from-mic-again';
+                    }
+                    return playState;
+                });
+            };
         }, [setPlayState]);
 
         // Update all parameters on mount
@@ -300,9 +326,9 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         color="primary"
                         onClick={onPlayMicrophoneClick}
                         startIcon={<MicIcon />}
-                        disabled={playState !== 'stopped'}
+                        disabled={playState !== 'stopped' && playState !== 'paused'}
                     >
-                        Gravar do microfone
+                        {playState === 'paused' || playState === 'playing-from-mic-again' ? 'Retomar gravação' : 'Gravar do microfone'}
                     </Button>
                     {playState === 'loading-mic' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
@@ -322,7 +348,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         color="primary"
                         onClick={onPlayFileClick}
                         startIcon={<AudiotrackIcon />}
-                        disabled={playState !== 'stopped'}
+                        disabled={playState !== 'stopped' && playState !== 'paused'}
                     >
                         Tocar arquivo de áudio
                     </Button>
@@ -337,10 +363,10 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     variant="outlined"
                     color="secondary"
                     onClick={onStopClick}
-                    startIcon={<StopIcon />}
-                    disabled={playState !== 'playing'}
+                    startIcon={isPlayingFromMic(playState) || playState === 'paused' ? <PauseIcon/> : <StopIcon />}
+                    disabled={playState !== 'playing-from-file' && ! isPlayingFromMic(playState)}
                 >
-                    Parar
+                    {isPlayingFromMic(playState) || playState === 'paused' ? 'Pausar' : 'Parar'}
                 </Button>
 
                 <Divider className={classes.divider} />

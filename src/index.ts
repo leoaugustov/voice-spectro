@@ -335,7 +335,7 @@ let globalAudioCtx: AudioContext | null = null;
                 setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback).then(
                     (callback) => {
                         stopCallback = callback;
-                        setPlayState('playing');
+                        setPlayState('playing-from-mic');
                     },
                     () => setPlayState('stopped')
                 );
@@ -349,7 +349,7 @@ let globalAudioCtx: AudioContext | null = null;
                 ).then(
                     (callback) => {
                         stopCallback = callback;
-                        setPlayState('playing');
+                        setPlayState('playing-from-file');
                     },
                     () => setPlayState('stopped')
                 );
