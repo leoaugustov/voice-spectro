@@ -1,0 +1,15 @@
+language: node_js
+node_js:
+  - node
+
+script:
+  - npm run build
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  target_branch: gh-pages
+  local_dir: dist
+  on:
+    tags: true
