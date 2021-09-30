@@ -114,7 +114,7 @@ const formatHz = (hz: number) => {
 };
 
 const formatPercentage = (value: number) => {
-    return `${(value * 100).toFixed(0)}%`;
+    return `${Math.floor(value * 100)}%`;
 };
 
 export type PlayState = 'stopped' | 'loading-file' | 'loading-mic' | 'playing';
