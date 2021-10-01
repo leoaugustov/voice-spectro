@@ -6,9 +6,8 @@ script:
   - npm run build
 
 deploy:
-  provider: pages
-  skip_cleanup: true
-  keep_history: true
+  provider: pages:git
+  edge: true
   github_token: $GITHUB_TOKEN
   target_branch: gh-pages
   local_dir: dist
