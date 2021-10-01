@@ -291,6 +291,11 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             [onRenderParametersUpdate]
         );
 
+        const onClearSpectrogramClick = useCallback(() => {
+            onClearSpectrogram();
+            setPlayState('stopped');
+        }, [setPlayState, onClearSpectrogram]);
+
         useEffect(() => {
             setPlayStateExport = (playState) => {
                 setPlayState(previousPlayState => {
@@ -447,7 +452,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     fullWidth
                     variant="text"
                     color="secondary"
-                    onClick={onClearSpectrogram}
+                    onClick={onClearSpectrogramClick}
                     startIcon={<ClearIcon />}
                 >
                     Limpar espectrograma
