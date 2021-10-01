@@ -265,16 +265,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             [onRenderParametersUpdate, setSensitivity]
         );
 
-        const onScaleChange = useCallback(
-            (event: ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
-                if (typeof event.target.value === 'string') {
-                    defaultParameters.scale = event.target.value as Scale;
-                    onRenderParametersUpdate({ scale: event.target.value as Scale });
-                }
-            },
-            [onRenderParametersUpdate]
-        );
-
         const onGradientChange = useCallback(
             (event: ChangeEvent<{ name?: string | undefined; value: unknown }>) => {
                 if (typeof event.target.value === 'string') {
@@ -418,18 +408,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     defaultValue={defaultParameters.maxFrequency}
                     onChange={onMaxFreqChange}
                 />
-                <FormControl className={classes.select}>
-                    <InputLabel id="scale-select-label">Escala de frequência</InputLabel>
-                    <Select
-                        labelId="scale-select-label"
-                        id="scale-select"
-                        defaultValue={defaultParameters.scale}
-                        onChange={onScaleChange}
-                    >
-                        <MenuItem value="mel">Mel</MenuItem>
-                        <MenuItem value="linear">Linear</MenuItem>
-                    </Select>
-                </FormControl>
                 <FormControl className={classes.select}>
                     <InputLabel id="gradient-select-label">Cor</InputLabel>
                     <Select
