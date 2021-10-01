@@ -31,7 +31,6 @@ import React, {
 } from 'react';
 
 import { GRADIENTS } from '../color-util';
-import { hzToMel, melToHz } from '../math-util';
 import { Scale } from '../spectrogram';
 import { RenderParameters } from '../spectrogram-render';
 
@@ -250,20 +249,18 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onMinFreqChange = useCallback(
             (value: number) => {
-                const hz = melToHz(value);
-                defaultParameters.minFrequency = hz;
-                onRenderParametersUpdate({ minFrequencyHz: hz });
-                setMinFrequency(formatHz(hz));
+                defaultParameters.minFrequency = value;
+                onRenderParametersUpdate({ minFrequencyHz: value });
+                setMinFrequency(formatHz(value));
             },
             [onRenderParametersUpdate, setSensitivity]
         );
 
         const onMaxFreqChange = useCallback(
             (value: number) => {
-                const hz = melToHz(value);
-                defaultParameters.maxFrequency = hz;
-                onRenderParametersUpdate({ maxFrequencyHz: hz });
-                setMaxFrequency(formatHz(hz));
+                defaultParameters.maxFrequency = value;
+                onRenderParametersUpdate({ maxFrequencyHz: value });
+                setMaxFrequency(formatHz(value));
             },
             [onRenderParametersUpdate, setSensitivity]
         );
@@ -312,8 +309,8 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             onSensitivityChange(defaultParameters.sensitivity);
             onContrastChange(defaultParameters.contrast);
             onZoomChange(defaultParameters.zoom);
-            onMinFreqChange(hzToMel(defaultParameters.minFrequency));
-            onMaxFreqChange(hzToMel(defaultParameters.maxFrequency));
+            onMinFreqChange(defaultParameters.minFrequency);
+            onMaxFreqChange(defaultParameters.maxFrequency);
             onRenderParametersUpdate({ scale: defaultParameters.scale });
 
             const gradientData = GRADIENTS.find((g) => g.name === defaultParameters.gradient);
@@ -406,19 +403,19 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                 <MinFrequencySlider
                     nameLabelId="min-freq-slider-label"
                     nameLabel="Frequência mínima"
-                    min={hzToMel(0)}
-                    max={hzToMel(20000)}
+                    min={0}
+                    max={20000}
                     step={1}
-                    defaultValue={hzToMel(defaultParameters.minFrequency)}
+                    defaultValue={defaultParameters.minFrequency}
                     onChange={onMinFreqChange}
                 />
                 <MaxFrequencySlider
                     nameLabelId="max-freq-slider-label"
                     nameLabel="Frequência máxima"
-                    min={hzToMel(0)}
-                    max={hzToMel(20000)}
+                    min={0}
+                    max={20000}
                     step={1}
-                    defaultValue={hzToMel(defaultParameters.maxFrequency)}
+                    defaultValue={defaultParameters.maxFrequency}
                     onChange={onMaxFreqChange}
                 />
                 <FormControl className={classes.select}>
