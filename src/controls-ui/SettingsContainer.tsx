@@ -144,11 +144,11 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         onRenderFromFile,
     }: SettingsContainerProps) => {
         const { current: defaultParameters } = useRef({
-            sensitivity: 0.5,
-            contrast: 0.5,
+            sensitivity: 0.4,
+            contrast: 0.35,
             zoom: 4,
             minFrequency: 10,
-            maxFrequency: 6500,
+            maxFrequency: 4500,
             scale: 'linear' as Scale,
             gradient: 'Black to White',
         });
