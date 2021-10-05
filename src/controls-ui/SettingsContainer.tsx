@@ -146,7 +146,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         const { current: defaultParameters } = useRef({
             sensitivity: 0.4,
             contrast: 0.35,
-            zoom: 4,
+            zoom: 3,
             minFrequency: 10,
             maxFrequency: 4500,
             scale: 'linear' as Scale,
