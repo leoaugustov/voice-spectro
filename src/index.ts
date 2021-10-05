@@ -25,8 +25,7 @@ async function startRenderingSpectrogram(): Promise<{
 }> {
     // The canvases that will render the spectrogram for each audio channel
     const spectrogramCanvases = [
-        document.querySelector('#leftSpectrogram') as HTMLCanvasElement | null,
-        document.querySelector('#rightSpectrogram') as HTMLCanvasElement | null,
+        document.querySelector('.charts-container .spectrogram canvas') as HTMLCanvasElement | null,
     ];
 
     // The callbacks for each spectrogram that will render the audio samples provided when called
@@ -141,7 +140,7 @@ async function setupSpectrogramFromMicrophone(
     audioCtx: AudioContext,
     bufferCallback: (bufferData: SpectrogramBufferData[]) => Promise<Float32Array[]>
 ) {
-    const CHANNELS = 2;
+    const CHANNELS = 1;
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     const source = audioCtx.createMediaStreamSource(mediaStream);
 
@@ -189,7 +188,7 @@ async function setupSpectrogramFromMicrophone(
         // Render the single merged buffer for each channel
         if (buffers.length > 0) {
             bufferCallbackPromise = bufferCallback(
-                buffers.map((buffer) => ({
+                buffers.map(buffer => ({
                     buffer,
                     start: 0,
                     length: buffer.length,
@@ -206,7 +205,7 @@ async function setupSpectrogramFromMicrophone(
 
     // Each time we record an audio buffer, save it and then render the next window when we have
     // enough samples
-    processor.addEventListener('audioprocess', (e) => {
+    processor.addEventListener('audioprocess', e => {
         for (let i = 0; i < Math.min(CHANNELS, e.inputBuffer.numberOfChannels); i += 1) {
             const channelBuffer = e.inputBuffer.getChannelData(i);
             channelBuffers[i].push(new Float32Array(channelBuffer));
@@ -238,14 +237,25 @@ async function setupSpectrogramFromAudioFile(
     const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) =>
         audioCtx.decodeAudioData(
             arrayBuffer,
-            (buffer) => resolve(buffer),
-            (err) => reject(err)
+            buffer => resolve(buffer),
+            err => reject(err)
         )
     );
 
-    let channelData: Float32Array[] = [];
-    for (let i = 0; i < audioBuffer.numberOfChannels; i += 1) {
-        channelData.push(new Float32Array(audioBuffer.getChannelData(i)));
+    let channelsMixedData: Float32Array;
+    if(audioBuffer.numberOfChannels > 1) {
+        const channelDataLength = audioBuffer.getChannelData(0).length;
+        channelsMixedData = new Float32Array(channelDataLength);
+
+        for(let i = 0; i < audioBuffer.numberOfChannels; i++) {
+            const channelData = new Float32Array(audioBuffer.getChannelData(i));
+
+            for(let j = 0; j < channelDataLength; j++) {
+                channelsMixedData[j] += channelData[j];
+            }
+        }
+    }else {
+        channelsMixedData = new Float32Array(audioBuffer.getChannelData(0));
     }
 
     const source = audioCtx.createBufferSource();
@@ -257,7 +267,6 @@ async function setupSpectrogramFromAudioFile(
 
     const audioEventCallback = async () => {
         const duration = (performance.now() - playStartTime) / 1000;
-        const bufferCallbackData = [];
 
         // Calculate spectrogram up to current point
         const totalSamples =
@@ -265,19 +274,16 @@ async function setupSpectrogramFromAudioFile(
             SPECTROGRAM_WINDOW_SIZE;
 
         if (totalSamples > 0) {
-            for (let i = 0; i < audioBuffer.numberOfChannels; i += 1) {
-                bufferCallbackData.push({
-                    buffer: channelData[i],
-                    start: nextSample,
-                    length: totalSamples,
-                    sampleRate: audioBuffer.sampleRate,
-                    isStart: nextSample === 0,
-                });
-            }
+            const bufferCallbackData = {
+                buffer: channelsMixedData,
+                start: nextSample,
+                length: totalSamples,
+                sampleRate: audioBuffer.sampleRate,
+                isStart: nextSample === 0,
+            };
 
-            nextSample =
-                nextSample + totalSamples - SPECTROGRAM_WINDOW_SIZE + SPECTROGRAM_WINDOW_OVERLAP;
-            channelData = await bufferCallback(bufferCallbackData);
+            nextSample = nextSample + totalSamples - SPECTROGRAM_WINDOW_SIZE + SPECTROGRAM_WINDOW_OVERLAP;
+            channelsMixedData = (await bufferCallback([bufferCallbackData]))[0];
         }
 
         if (!isStopping && duration / audioBuffer.duration < 1.0) {
