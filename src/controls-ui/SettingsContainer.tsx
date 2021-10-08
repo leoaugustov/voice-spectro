@@ -220,7 +220,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onSensitivityChange = useCallback(
             (value: number) => {
-                defaultParameters.sensitivity = value;
                 const scaledValue = 10 ** (value * 3) - 1;
                 onRenderParametersUpdate({ sensitivity: scaledValue });
                 setSensitivity(formatPercentage(value));
@@ -230,7 +229,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onContrastChange = useCallback(
             (value: number) => {
-                defaultParameters.contrast = value;
                 const scaledValue = 10 ** (value * 6) - 1;
                 onRenderParametersUpdate({ contrast: scaledValue });
                 setContrast(formatPercentage(value));
@@ -240,7 +238,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onZoomChange = useCallback(
             (value: number) => {
-                defaultParameters.zoom = value;
                 onRenderParametersUpdate({ zoom: value });
                 setZoom(formatPercentage(value));
             },
@@ -249,7 +246,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onMinFreqChange = useCallback(
             (value: number) => {
-                defaultParameters.minFrequency = value;
                 onRenderParametersUpdate({ minFrequencyHz: value });
                 setMinFrequency(formatHz(value));
             },
@@ -258,7 +254,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onMaxFreqChange = useCallback(
             (value: number) => {
-                defaultParameters.maxFrequency = value;
                 onRenderParametersUpdate({ maxFrequencyHz: value });
                 setMaxFrequency(formatHz(value));
             },
