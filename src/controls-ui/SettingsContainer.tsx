@@ -275,7 +275,6 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onClearSpectrogramClick = useCallback(() => {
             onClearSpectrogram();
-            setPlayState('stopped');
         }, [setPlayState, onClearSpectrogram]);
 
         useEffect(() => {
