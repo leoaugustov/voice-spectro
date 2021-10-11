@@ -16,66 +16,56 @@ interface SpectrogramBufferData {
     isStart: boolean;
 }
 
-// Starts rendering the spectrograms, returning callbacks used to provide audio samples to render
-// and update the display parameters of the spectrograms
+// Starts rendering the spectrogram, returning callbacks used to provide audio samples to render
+// and update the display parameters of the spectrogram
 async function startRenderingSpectrogram(): Promise<{
-    bufferCallback: (bufferData: SpectrogramBufferData[]) => Promise<Float32Array[]>;
+    bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>;
     clearCallback: () => void;
     updateRenderParameters: (parameters: Partial<RenderParameters>) => void;
 }> {
-    // The canvases that will render the spectrogram for each audio channel
-    const spectrogramCanvases = [
-        document.querySelector('.charts-container .spectrogram canvas') as HTMLCanvasElement | null,
-    ];
+    // The canvas that will render the spectrogram
+    const spectrogramCanvas = document.querySelector('.charts-container .spectrogram canvas') as HTMLCanvasElement;
 
-    // The callbacks for each spectrogram that will render the audio samples provided when called
-    const bufferCallbacks: ((bufferData: SpectrogramBufferData) => Promise<Float32Array>)[] = [];
+    // The callback that will render the audio samples provided when called
+    let bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>;
 
-    // Set up the WebGL contexts for each spectrogram
-    const spectrogramBuffers: Circular2DBuffer<Float32Array>[] = [];
-    const renderers: SpectrogramGPURenderer[] = [];
-    spectrogramCanvases.forEach((canvas) => {
-        if (canvas === null || canvas.parentElement === null) {
-            return;
-        }
-
-        // The 2D circular queue of the FFT data for each audio channel
-        const spectrogramBuffer = new Circular2DBuffer(
+    // Set up the WebGL context for the spectrogram
+    let spectrogramBuffer: Circular2DBuffer<Float32Array>;
+    let renderer: SpectrogramGPURenderer;
+    if (spectrogramCanvas !== null && spectrogramCanvas.parentElement !== null) {
+        // The 2D circular queue of the FFT data
+        spectrogramBuffer = new Circular2DBuffer(
             Float32Array,
-            canvas.parentElement.offsetWidth,
+            spectrogramCanvas.parentElement.offsetWidth,
             SPECTROGRAM_WINDOW_SIZE / 2,
             1
         );
-        spectrogramBuffers.push(spectrogramBuffer);
 
-        const renderer = new SpectrogramGPURenderer(
-            canvas,
+        renderer = new SpectrogramGPURenderer(
+            spectrogramCanvas,
             spectrogramBuffer.width,
             spectrogramBuffer.height
         );
-        renderer.resizeCanvas(canvas.parentElement.offsetWidth, canvas.parentElement.offsetHeight);
-        renderers.push(renderer);
+        renderer.resizeCanvas(spectrogramCanvas.parentElement.offsetWidth, spectrogramCanvas.parentElement.offsetHeight);
 
         let imageDirty = false;
-        bufferCallbacks.push(
-            async ({ buffer, start, length, sampleRate, isStart }: SpectrogramBufferData) => {
-                renderer.updateParameters({
-                    windowSize: SPECTROGRAM_WINDOW_SIZE,
-                    sampleRate,
-                });
+        bufferCallback = async ({ buffer, start, length, sampleRate, isStart }: SpectrogramBufferData) => {
+            renderer.updateParameters({
+                windowSize: SPECTROGRAM_WINDOW_SIZE,
+                sampleRate,
+            });
 
-                const spectrogram = await offThreadGenerateSpectrogram(buffer, start, length, {
-                    windowSize: SPECTROGRAM_WINDOW_SIZE,
-                    windowStepSize: SPECTROGRAM_WINDOW_OVERLAP,
-                    sampleRate,
-                    isStart,
-                });
-                spectrogramBuffer.enqueue(spectrogram.spectrogram);
-                imageDirty = true;
+            const spectrogram = await offThreadGenerateSpectrogram(buffer, start, length, {
+                windowSize: SPECTROGRAM_WINDOW_SIZE,
+                windowStepSize: SPECTROGRAM_WINDOW_OVERLAP,
+                sampleRate,
+                isStart,
+            });
+            spectrogramBuffer.enqueue(spectrogram.spectrogram);
+            imageDirty = true;
 
-                return spectrogram.input;
-            }
-        );
+            return spectrogram.input;
+        };
 
         // Trigger a render on each frame only if we have new spectrogram data to display
         const render = () => {
@@ -86,59 +76,54 @@ async function startRenderingSpectrogram(): Promise<{
             requestAnimationFrame(render);
         };
         requestAnimationFrame(render);
-    });
+    }
 
     // Handle resizing of the window
     const resizeHandler = debounce(() => {
-        spectrogramCanvases.forEach((canvas, i) => {
-            if (canvas === null || canvas.parentElement === null) {
-                return;
-            }
+        if (spectrogramCanvas === null || spectrogramCanvas.parentElement === null) {
+            return;
+        }
 
-            spectrogramBuffers[i].resizeWidth(canvas.parentElement.offsetWidth);
-            renderers[i].resizeCanvas(
-                canvas.parentElement.offsetWidth,
-                canvas.parentElement.offsetHeight
-            );
-            renderers[i].updateSpectrogram(spectrogramBuffers[i]);
-        });
+        spectrogramBuffer.resizeWidth(spectrogramCanvas.parentElement.offsetWidth);
+        renderer.resizeCanvas(
+            spectrogramCanvas.parentElement.offsetWidth,
+            spectrogramCanvas.parentElement.offsetHeight
+        );
+        renderer.updateSpectrogram(spectrogramBuffer);
     }, 250);
     window.addEventListener('resize', resizeHandler);
 
     // Make sure the canvas still displays properly in the middle of a resize
     window.addEventListener('resize', () => {
-        spectrogramCanvases.forEach((canvas, i) => {
-            if (canvas === null || canvas.parentElement === null) {
-                return;
-            }
-
-            renderers[i].fastResizeCanvas(
-                canvas.parentElement.offsetWidth,
-                canvas.parentElement.offsetHeight
-            );
-        });
+        if (spectrogramCanvas === null || spectrogramCanvas.parentElement === null) {
+            return;
+        }
+        renderer.fastResizeCanvas(
+            spectrogramCanvas.parentElement.offsetWidth,
+            spectrogramCanvas.parentElement.offsetHeight
+        );
     });
 
     return {
-        bufferCallback: (buffers: SpectrogramBufferData[]) =>
-            Promise.all(buffers.map((buffer, i) => bufferCallbacks[i](buffer))),
+        bufferCallback: (buffer: SpectrogramBufferData) => {
+            if(bufferCallback) {
+                return bufferCallback(buffer);
+            }
+            return Promise.reject("Buffer callback not initialized");
+        },
         clearCallback: () => {
-            renderers.forEach((renderer, i) => {
-                spectrogramBuffers[i].clear();
-                renderer.updateSpectrogram(spectrogramBuffers[i], true);
-            });
+            spectrogramBuffer.clear();
+            renderer.updateSpectrogram(spectrogramBuffer, true);
         },
         updateRenderParameters: (parameters: Partial<RenderParameters>) => {
-            for (let i = 0; i < renderers.length; i += 1) {
-                renderers[i].updateParameters(parameters);
-            }
+            renderer.updateParameters(parameters);
         },
     };
 }
 
 async function setupSpectrogramFromMicrophone(
     audioCtx: AudioContext,
-    bufferCallback: (bufferData: SpectrogramBufferData[]) => Promise<Float32Array[]>
+    bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>
 ) {
     const CHANNELS = 1;
     const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -155,7 +140,7 @@ async function setupSpectrogramFromMicrophone(
 
     let sampleRate: number | null = null;
     let isStart = true;
-    let bufferCallbackPromise: Promise<Float32Array[]> | null = null;
+    let bufferCallbackPromise: Promise<Float32Array> | null = null;
     const processChannelBuffers = () => {
         if (bufferCallbackPromise !== null) {
             return;
@@ -176,13 +161,13 @@ async function setupSpectrogramFromMicrophone(
 
         // Render the single merged buffer
         if (mergedBuffer) {
-            bufferCallbackPromise = bufferCallback([{
+            bufferCallbackPromise = bufferCallback({
                 buffer: mergedBuffer,
                 start: 0,
                 length: mergedBuffer.length,
                 sampleRate: sampleRate!,
                 isStart,
-            }]);
+            });
             bufferCallbackPromise.then(() => {
                 bufferCallbackPromise = null;
             });
@@ -211,7 +196,7 @@ async function setupSpectrogramFromMicrophone(
 async function setupSpectrogramFromAudioFile(
     audioCtx: AudioContext,
     arrayBuffer: ArrayBuffer,
-    bufferCallback: (bufferData: SpectrogramBufferData[]) => Promise<Float32Array[]>,
+    bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>,
     audioEndCallback: () => void
 ) {
     const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) =>
@@ -263,7 +248,7 @@ async function setupSpectrogramFromAudioFile(
             };
 
             nextSample = nextSample + totalSamples - SPECTROGRAM_WINDOW_SIZE + SPECTROGRAM_WINDOW_OVERLAP;
-            channelsMixedData = (await bufferCallback([bufferCallbackData]))[0];
+            channelsMixedData = await bufferCallback(bufferCallbackData);
         }
 
         if (!isStopping && duration / audioBuffer.duration < 1.0) {
@@ -319,7 +304,7 @@ let globalAudioCtx: AudioContext | null = null;
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
                 setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback).then(
-                    (callback) => {
+                    callback => {
                         stopCallback = callback;
                         setPlayState('playing-from-mic');
                     },
@@ -333,7 +318,7 @@ let globalAudioCtx: AudioContext | null = null;
                 setupSpectrogramFromAudioFile(globalAudioCtx, file, bufferCallback, () =>
                     setPlayState('stopped')
                 ).then(
-                    (callback) => {
+                    callback => {
                         stopCallback = callback;
                         setPlayState('playing-from-file');
                     },
