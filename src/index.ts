@@ -150,11 +150,8 @@ async function setupSpectrogramFromMicrophone(
         CHANNELS
     );
 
-    // An array of the last received audio buffers for each channel
-    const channelBuffers: Float32Array[][] = [];
-    for (let i = 0; i < CHANNELS; i += 1) {
-        channelBuffers.push([]);
-    }
+    // An array of the last received audio buffers
+    const buffers: Float32Array[] = [];
 
     let sampleRate: number | null = null;
     let isStart = true;
@@ -164,38 +161,28 @@ async function setupSpectrogramFromMicrophone(
             return;
         }
 
-        const buffers: Float32Array[] = [];
-        for (let i = 0; i < CHANNELS; i += 1) {
-            // Check if we have at least full window to render yet
-            if (channelBuffers[i].length < SPECTROGRAM_WINDOW_SIZE / SPECTROGRAM_WINDOW_OVERLAP) {
-                break;
-            }
-
+        let mergedBuffer;
+        // Check if we have at least full window to render yet
+        if (! (buffers.length < SPECTROGRAM_WINDOW_SIZE / SPECTROGRAM_WINDOW_OVERLAP)) {
             // Merge all the buffers we have so far into a single buffer for rendering
-            const buffer = new Float32Array(channelBuffers[i].length * SPECTROGRAM_WINDOW_OVERLAP);
-            buffers.push(buffer);
-            for (let j = 0; j < channelBuffers[i].length; j += 1) {
-                buffer.set(channelBuffers[i][j], SPECTROGRAM_WINDOW_OVERLAP * j);
+            mergedBuffer = new Float32Array(buffers.length * SPECTROGRAM_WINDOW_OVERLAP);
+            for (let i = 0; i < buffers.length; i++) {
+                mergedBuffer.set(buffers[i], SPECTROGRAM_WINDOW_OVERLAP * i);
             }
 
             // Delete the oldest buffers that aren't needed any more for the next render
-            channelBuffers[i].splice(
-                0,
-                channelBuffers[i].length - SPECTROGRAM_WINDOW_SIZE / SPECTROGRAM_WINDOW_OVERLAP + 1
-            );
+            buffers.splice(0, buffers.length - SPECTROGRAM_WINDOW_SIZE / SPECTROGRAM_WINDOW_OVERLAP + 1);
         }
 
-        // Render the single merged buffer for each channel
-        if (buffers.length > 0) {
-            bufferCallbackPromise = bufferCallback(
-                buffers.map(buffer => ({
-                    buffer,
-                    start: 0,
-                    length: buffer.length,
-                    sampleRate: sampleRate!,
-                    isStart,
-                }))
-            );
+        // Render the single merged buffer
+        if (mergedBuffer) {
+            bufferCallbackPromise = bufferCallback([{
+                buffer: mergedBuffer,
+                start: 0,
+                length: mergedBuffer.length,
+                sampleRate: sampleRate!,
+                isStart,
+            }]);
             bufferCallbackPromise.then(() => {
                 bufferCallbackPromise = null;
             });
@@ -206,14 +193,7 @@ async function setupSpectrogramFromMicrophone(
     // Each time we record an audio buffer, save it and then render the next window when we have
     // enough samples
     processor.addEventListener('audioprocess', e => {
-        for (let i = 0; i < Math.min(CHANNELS, e.inputBuffer.numberOfChannels); i += 1) {
-            const channelBuffer = e.inputBuffer.getChannelData(i);
-            channelBuffers[i].push(new Float32Array(channelBuffer));
-        }
-        // If a single channel input, pass an empty signal for the right channel
-        for (let i = Math.min(CHANNELS, e.inputBuffer.numberOfChannels); i < CHANNELS; i += 1) {
-            channelBuffers[i].push(new Float32Array(SPECTROGRAM_WINDOW_OVERLAP));
-        }
+        buffers.push(new Float32Array(e.inputBuffer.getChannelData(0)));
         sampleRate = e.inputBuffer.sampleRate;
         processChannelBuffers();
     });
