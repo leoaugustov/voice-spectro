@@ -314,7 +314,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         startIcon={<MicIcon />}
                         disabled={playState !== 'stopped' && playState !== 'paused'}
                     >
-                        {playState === 'paused' || playState === 'playing-from-mic-again' ? 'Retomar gravação' : 'Gravar do microfone'}
+                        {playState === 'paused' || playState === 'playing-from-mic-again' ? 'Retomar gravação' : 'Gravar microfone'}
                     </Button>
                     {playState === 'loading-mic' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
