@@ -19,7 +19,6 @@ import CloseIcon from '@material-ui/icons/Close';
 import MicIcon from '@material-ui/icons/Mic';
 import SettingsIcon from '@material-ui/icons/Settings';
 import StopIcon from '@material-ui/icons/Stop';
-import PauseIcon from '@material-ui/icons/Pause';
 import React, {
     ChangeEvent,
     MouseEvent,
@@ -117,11 +116,7 @@ const formatPercentage = (value: number) => {
     return `${Math.floor(value * 100)}%`;
 };
 
-const isPlayingFromMic = (playState: PlayState) => {
-    return playState === 'playing-from-mic' || playState === 'playing-from-mic-again';
-}
-
-export type PlayState = 'stopped' | 'paused' | 'loading-file' | 'loading-mic' | 'playing-from-mic' | 'playing-from-mic-again' | 'playing-from-file';
+export type PlayState = 'stopped' | 'loading-file' | 'loading-mic' | 'playing-from-mic' | 'playing-from-file';
 
 export interface SettingsContainerProps {
     onStop: () => void;
@@ -172,12 +167,10 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         const [MaxFrequencySlider, setMaxFrequency] = useMemo(generateLabelledSlider, []);
 
         const onPlayMicrophoneClick = useCallback(() => {
-            if(playState !== 'paused') {
-                onClearSpectrogram();
-                setPlayState('loading-mic');
-            }
+            onClearSpectrogram();
+            setPlayState('loading-mic');
             onRenderFromMicrophone();
-        }, [onRenderFromMicrophone, onClearSpectrogram, setPlayState, playState]);
+        }, [onRenderFromMicrophone, onClearSpectrogram, setPlayState]);
 
         const onPlayFileClick = useCallback(() => {
             if (fileRef.current === null) {
@@ -215,8 +208,8 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onStopClick = useCallback(() => {
             onStop();
-            setPlayState(isPlayingFromMic(playState) ? 'paused' : 'stopped');
-        }, [setPlayState, playState]);
+            setPlayState('stopped');
+        }, [setPlayState]);
 
         const onSensitivityChange = useCallback(
             (value: number) => {
@@ -275,17 +268,10 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onClearSpectrogramClick = useCallback(() => {
             onClearSpectrogram();
-        }, [setPlayState, onClearSpectrogram]);
+        }, [onClearSpectrogram]);
 
         useEffect(() => {
-            setPlayStateExport = (playState) => {
-                setPlayState(previousPlayState => {
-                    if (previousPlayState === 'paused' && playState === 'playing-from-mic') {
-                        return 'playing-from-mic-again';
-                    }
-                    return playState;
-                });
-            };
+            setPlayStateExport = setPlayState;
         }, [setPlayState]);
 
         // Update all parameters on mount
@@ -312,9 +298,9 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         color="primary"
                         onClick={onPlayMicrophoneClick}
                         startIcon={<MicIcon />}
-                        disabled={playState !== 'stopped' && playState !== 'paused'}
+                        disabled={playState !== 'stopped'}
                     >
-                        {playState === 'paused' || playState === 'playing-from-mic-again' ? 'Retomar gravação' : 'Gravar microfone'}
+                        Gravar microfone
                     </Button>
                     {playState === 'loading-mic' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
@@ -334,7 +320,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         color="primary"
                         onClick={onPlayFileClick}
                         startIcon={<AudiotrackIcon />}
-                        disabled={playState !== 'stopped' && playState !== 'paused'}
+                        disabled={playState !== 'stopped'}
                     >
                         Abrir arquivo de áudio
                     </Button>
@@ -349,10 +335,10 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                     variant="outlined"
                     color="secondary"
                     onClick={onStopClick}
-                    startIcon={isPlayingFromMic(playState) || playState === 'paused' ? <PauseIcon/> : <StopIcon />}
-                    disabled={playState !== 'playing-from-file' && ! isPlayingFromMic(playState)}
+                    startIcon={<StopIcon />}
+                    disabled={playState !== 'playing-from-file' && playState !== 'playing-from-mic'}
                 >
-                    {isPlayingFromMic(playState) || playState === 'paused' ? 'Pausar' : 'Parar'}
+                    Parar
                 </Button>
 
                 <Divider className={classes.divider} />
