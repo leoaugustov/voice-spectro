@@ -336,7 +336,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
                         startIcon={<AudiotrackIcon />}
                         disabled={playState !== 'stopped' && playState !== 'paused'}
                     >
-                        Tocar arquivo de áudio
+                        Abrir arquivo de áudio
                     </Button>
                     {playState === 'loading-file' && (
                         <CircularProgress size={24} className={classes.buttonProgress} />
