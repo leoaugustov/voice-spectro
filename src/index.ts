@@ -190,6 +190,7 @@ async function setupSpectrogramFromMicrophone(
     return () => {
         processor.disconnect(audioCtx.destination);
         source.disconnect(processor);
+        audioStream.getTracks()[0].stop();
     };
 }
 
