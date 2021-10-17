@@ -1,3 +1,6 @@
+# Project build output
+dist/*.js
+
 # Certificates
 *.pem
 
