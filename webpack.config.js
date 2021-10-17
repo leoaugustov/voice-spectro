@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 module.exports = {
     entry: './src/index.ts',
@@ -14,6 +15,10 @@ module.exports = {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,
         port: 9000,
+        https: {
+            key: fs.readFileSync(path.join(__dirname, 'localhost+2-key.pem')),
+            cert: fs.readFileSync(path.join(__dirname, 'localhost+2.pem')),
+        }
     },
     module: {
         rules: [
@@ -38,6 +43,10 @@ module.exports = {
                 test: /\.tsx?$/,
                 exclude: /node_modules/,
                 loader: 'babel-loader',
+            },
+            {
+              test: /encoderWorker\.min\.js$/,
+              use: [{ loader: 'file-loader' }]
             },
         ],
     },
