@@ -560,7 +560,7 @@ function generateSettingsContainer(): [
             }
         },
         recordedAudioFile => {
-            if(recordedAudioLinkExport.current !== null) {
+            if(isRecordingSupported() && recordedAudioLinkExport.current !== null) {
                 recordedAudioLinkExport.current.href = URL.createObjectURL(recordedAudioFile);
                 recordedAudioLinkExport.current.download = 'audio-gravado-no-voice-spectro.wav';
             }

@@ -131,11 +131,14 @@ async function setupSpectrogramFromMicrophone(
     const CHANNELS = 1;
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     const microphone = audioCtx.createMediaStreamSource(audioStream);
-    const recorder = new Recorder({ sourceNode: microphone, encoderPath });
 
-    recorder.ondataavailable = (arrayBuffer: Uint8Array) => {
-        recordingFinishedCallback(new Blob([arrayBuffer], { type: 'audio/wav' }));
-    };
+    let recorder: (Recorder | null) = null;
+    if(Recorder.isRecordingSupported()) {
+        recorder = new Recorder({ sourceNode: microphone, encoderPath });
+        recorder.ondataavailable = (arrayBuffer: Uint8Array) => {
+            recordingFinishedCallback(new Blob([arrayBuffer], { type: 'audio/wav' }));
+        };
+    }
 
     const processor = audioCtx.createScriptProcessor(
         SPECTROGRAM_WINDOW_OVERLAP,
@@ -193,10 +196,10 @@ async function setupSpectrogramFromMicrophone(
 
     microphone.connect(processor);
     processor.connect(audioCtx.destination);
-    recorder.start();
+    recorder?.start();
 
     return () => {
-        recorder.stop();
+        recorder?.stop();
         processor.disconnect(audioCtx.destination);
         microphone.disconnect(processor);
         audioStream.getTracks()[0].stop();
