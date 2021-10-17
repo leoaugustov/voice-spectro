@@ -11,12 +11,13 @@ import ScopedCssBaseline from '@material-ui/core/ScopedCssBaseline';
 import Select from '@material-ui/core/Select';
 import Typography from '@material-ui/core/Typography';
 import pink from '@material-ui/core/colors/pink';
-import { ThemeProvider, createMuiTheme, makeStyles } from '@material-ui/core/styles';
+import { ThemeProvider, createTheme, makeStyles } from '@material-ui/core/styles';
 import useMediaQuery from '@material-ui/core/useMediaQuery';
 import AudiotrackIcon from '@material-ui/icons/Audiotrack';
 import ClearIcon from '@material-ui/icons/Clear';
 import CloseIcon from '@material-ui/icons/Close';
 import MicIcon from '@material-ui/icons/Mic';
+import GetAppIcon from '@material-ui/icons/GetApp';
 import SettingsIcon from '@material-ui/icons/Settings';
 import StopIcon from '@material-ui/icons/Stop';
 import React, {
@@ -29,13 +30,14 @@ import React, {
     useCallback,
 } from 'react';
 
+import Recorder from 'opus-recorder';
 import { GRADIENTS } from '../color-util';
 import { Scale } from '../spectrogram';
 import { RenderParameters } from '../spectrogram-render';
 
 import generateLabelledSlider from './LabelledSlider';
 
-const controlsTheme = createMuiTheme({
+const controlsTheme = createTheme({
     palette: {
         type: 'dark',
         background: {
@@ -103,7 +105,27 @@ const useStyles = makeStyles((theme) => ({
         boxSizing: 'border-box',
         margin: `${theme.spacing(2)}px auto 0 auto`,
     },
+    row: {
+        display: 'flex',
+        flexDirection: 'row',
+        width: '100%',
+    },
+    column: {
+        display: 'flex',
+        flexDirection: 'column',
+        flexBasis: 'auto',
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    warningAlert: {
+        color: 'rgb(255, 213, 153)',
+        marginTop: theme.spacing(1),
+        fontSize: '0.8rem',
+    }
 }));
+
+const isRecordingSupported = () => Recorder.isRecordingSupported();
 
 const formatHz = (hz: number) => {
     if (hz < 999.5) {
@@ -116,7 +138,8 @@ const formatPercentage = (value: number) => {
     return `${Math.floor(value * 100)}%`;
 };
 
-export type PlayState = 'stopped' | 'loading-file' | 'loading-mic' | 'playing-from-mic' | 'playing-from-file';
+export type PlayState = 'stopped' | 'loading-file' | 'loading-mic'
+        | 'playing-from-mic' | 'playing-from-file' | 'waiting-for-recorded-audio-download';
 
 export interface SettingsContainerProps {
     onStop: () => void;
@@ -128,8 +151,13 @@ export interface SettingsContainerProps {
 
 export type SettingsContainer = (props: SettingsContainerProps) => JSX.Element;
 
-function generateSettingsContainer(): [SettingsContainer, (playState: PlayState) => void] {
+function generateSettingsContainer(): [
+    SettingsContainer,
+    (playState: PlayState) => void,
+    (recordedAudioFile: Blob) => void
+] {
     let setPlayStateExport: ((playState: PlayState) => void) | null = null;
+    let recordedAudioLinkExport: React.MutableRefObject<HTMLAnchorElement | null>;
 
     const SettingsContainer = ({
         onStop,
@@ -158,6 +186,7 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         const onInnerPaperClick = useCallback((e: MouseEvent) => e.stopPropagation(), []);
 
         const fileRef = useRef<HTMLInputElement | null>(null);
+        const recordedAudioLinkRef = useRef<HTMLAnchorElement | null>(null);
 
         const [playState, setPlayState] = useState<PlayState>('stopped');
         const [SensitivitySlider, setSensitivity] = useMemo(generateLabelledSlider, []);
@@ -166,11 +195,24 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
         const [MinFrequencySlider, setMinFrequency] = useMemo(generateLabelledSlider, []);
         const [MaxFrequencySlider, setMaxFrequency] = useMemo(generateLabelledSlider, []);
 
-        const onPlayMicrophoneClick = useCallback(() => {
+        const onPlayMicrophoneClick = useCallback(async () => {
             onClearSpectrogram();
             setPlayState('loading-mic');
-            onRenderFromMicrophone();
+            await onRenderFromMicrophone();
         }, [onRenderFromMicrophone, onClearSpectrogram, setPlayState]);
+
+        const onRecordedAudioDownloadClick = useCallback(() => {
+            recordedAudioLinkRef.current?.click();
+            onRecordedAudioDownloadCancelClick();
+        }, [recordedAudioLinkRef, setPlayState]);
+
+        const onRecordedAudioDownloadCancelClick = useCallback(() => {
+            setPlayState('stopped');
+            if(recordedAudioLinkRef.current !== null) {
+                recordedAudioLinkRef.current.href = "";
+                recordedAudioLinkRef.current.download = "";
+            }
+        }, [recordedAudioLinkRef, setPlayState]);
 
         const onPlayFileClick = useCallback(() => {
             if (fileRef.current === null) {
@@ -191,14 +233,14 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             const file = fileRef.current.files[0];
             const reader = new FileReader();
             setPlayState('loading-file');
-            reader.addEventListener('load', () => {
+            reader.addEventListener('load', async () => {
                 if (fileRef.current !== null) {
                     fileRef.current.value = '';
                 }
 
                 if (reader.result instanceof ArrayBuffer) {
                     onClearSpectrogram();
-                    onRenderFromFile(reader.result);
+                    await onRenderFromFile(reader.result);
                 } else {
                     setPlayState('stopped');
                 }
@@ -208,7 +250,12 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const onStopClick = useCallback(() => {
             onStop();
-            setPlayState('stopped');
+            setPlayState(previousState => {
+                if(previousState === 'playing-from-mic' && isRecordingSupported()) {
+                    return 'waiting-for-recorded-audio-download';
+                }
+                return 'stopped';
+            });
         }, [setPlayState]);
 
         const onSensitivityChange = useCallback(
@@ -274,6 +321,10 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
             setPlayStateExport = setPlayState;
         }, [setPlayState]);
 
+        useEffect(() => {
+            recordedAudioLinkExport = recordedAudioLinkRef;
+        }, [recordedAudioLinkRef]);
+
         // Update all parameters on mount
         useEffect(() => {
             onSensitivityChange(defaultParameters.sensitivity);
@@ -291,21 +342,53 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
         const content = (
             <>
-                <div className={classes.buttonContainer}>
-                    <Button
-                        fullWidth
-                        variant="contained"
-                        color="primary"
-                        onClick={onPlayMicrophoneClick}
-                        startIcon={<MicIcon />}
-                        disabled={playState !== 'stopped'}
-                    >
-                        Gravar microfone
-                    </Button>
-                    {playState === 'loading-mic' && (
-                        <CircularProgress size={24} className={classes.buttonProgress} />
-                    )}
-                </div>
+                <a style={{ display: 'none' }} ref={recordedAudioLinkRef} />
+                {playState === 'waiting-for-recorded-audio-download' && (
+                    <div className={classes.row}>
+                        <div className={`${classes.buttonContainer} ${classes.column}`}>
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                color="primary"
+                                startIcon={<GetAppIcon />}
+                                onClick={onRecordedAudioDownloadClick}
+                            >
+                                Baixar
+                            </Button>
+                        </div>
+                        <div className={`${classes.buttonContainer} ${classes.column}`}>
+                            <Button
+                                fullWidth
+                                variant="text"
+                                color="secondary"
+                                size="small"
+                                onClick={onRecordedAudioDownloadCancelClick}
+                            >
+                                Cancelar
+                            </Button>
+                        </div>
+                    </div>
+                )}
+                {playState !== 'waiting-for-recorded-audio-download' && (
+                    <div className={classes.buttonContainer}>
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={onPlayMicrophoneClick}
+                            startIcon={<MicIcon />}
+                            disabled={playState !== 'stopped'}
+                        >
+                            Gravar microfone
+                        </Button>
+                        {playState === 'loading-mic' && (
+                            <CircularProgress size={24} className={classes.buttonProgress} />
+                        )}
+                        {(! isRecordingSupported()) && (
+                            <Typography className={classes.warningAlert}>Seu navegador não dá suporte ao download do áudio gravado</Typography>
+                        )}
+                    </div>
+                )}
                 <input
                     type="file"
                     style={{ display: 'none' }}
@@ -469,11 +552,17 @@ function generateSettingsContainer(): [SettingsContainer, (playState: PlayState)
 
     return [
         SettingsContainer,
-        (playState) => {
+        playState => {
             if (setPlayStateExport !== null) {
                 setPlayStateExport(playState);
             } else {
                 throw new Error('Attempt to set play state before component mount');
+            }
+        },
+        recordedAudioFile => {
+            if(recordedAudioLinkExport.current !== null) {
+                recordedAudioLinkExport.current.href = URL.createObjectURL(recordedAudioFile);
+                recordedAudioLinkExport.current.download = 'audio-gravado-no-voice-spectro.wav';
             }
         },
     ];

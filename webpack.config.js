@@ -1,5 +1,4 @@
 const path = require('path');
-const fs = require('fs');
 
 module.exports = {
     entry: './src/index.ts',
@@ -16,8 +15,8 @@ module.exports = {
         compress: true,
         port: 9000,
         https: {
-            key: fs.readFileSync(path.join(__dirname, 'localhost+2-key.pem')),
-            cert: fs.readFileSync(path.join(__dirname, 'localhost+2.pem')),
+            key: './localhost+2-key.pem',
+            cert: './localhost+2.pem',
         }
     },
     module: {

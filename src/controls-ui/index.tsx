@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 
 import { RenderParameters } from '../spectrogram-render';
 
-import generateSettingsContainer from './SettingsContainer';
+import generateSettingsContainer, { PlayState } from './SettingsContainer';
 
 export default function initializeControlsUi(
     container: Element,
@@ -14,8 +14,8 @@ export default function initializeControlsUi(
         renderFromMicrophoneCallback: () => void;
         renderFromFileCallback: (file: ArrayBuffer) => void;
     }
-) {
-    const [SettingsContainer, setPlayState] = generateSettingsContainer();
+): [(playState: PlayState) => void, (recordedAudioFile: Blob) => void] {
+    const [SettingsContainer, setPlayState, recordingFinishedCallback] = generateSettingsContainer();
 
     ReactDOM.render(
         <SettingsContainer
@@ -28,5 +28,5 @@ export default function initializeControlsUi(
         container
     );
 
-    return setPlayState;
+    return [setPlayState, recordingFinishedCallback];
 }

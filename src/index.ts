@@ -1,3 +1,5 @@
+import Recorder from 'opus-recorder';
+import encoderPath from 'opus-recorder/dist/encoderWorker.min.js';
 import debounce from 'lodash.debounce';
 
 import initializeControlsUi from './controls-ui';
@@ -123,11 +125,17 @@ async function startRenderingSpectrogram(): Promise<{
 
 async function setupSpectrogramFromMicrophone(
     audioCtx: AudioContext,
-    bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>
+    bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>,
+    recordingFinishedCallback: (recordedAudioFile: Blob) => void
 ) {
     const CHANNELS = 1;
-    const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    const source = audioCtx.createMediaStreamSource(mediaStream);
+    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const microphone = audioCtx.createMediaStreamSource(audioStream);
+    const recorder = new Recorder({ sourceNode: microphone, encoderPath });
+
+    recorder.ondataavailable = (arrayBuffer: Uint8Array) => {
+        recordingFinishedCallback(new Blob([arrayBuffer], { type: 'audio/wav' }));
+    };
 
     const processor = audioCtx.createScriptProcessor(
         SPECTROGRAM_WINDOW_OVERLAP,
@@ -183,13 +191,14 @@ async function setupSpectrogramFromMicrophone(
         processChannelBuffers();
     });
 
-    source.connect(processor);
+    microphone.connect(processor);
     processor.connect(audioCtx.destination);
+    recorder.start();
 
-    // Return a function to stop rendering
     return () => {
+        recorder.stop();
         processor.disconnect(audioCtx.destination);
-        source.disconnect(processor);
+        microphone.disconnect(processor);
         audioStream.getTracks()[0].stop();
     };
 }
@@ -287,7 +296,7 @@ let globalAudioCtx: AudioContext | null = null;
     } = await spectrogramCallbacksPromise;
     if (controlsContainer !== null) {
         let stopCallback: (() => void) | null = null;
-        const setPlayState = initializeControlsUi(controlsContainer, {
+        const [setPlayState, recordingFinishedCallback] = initializeControlsUi(controlsContainer, {
             stopCallback: () => {
                 if (stopCallback !== null) {
                     stopCallback();
@@ -300,31 +309,27 @@ let globalAudioCtx: AudioContext | null = null;
             renderParametersUpdateCallback: (parameters: Partial<RenderParameters>) => {
                 updateRenderParameters(parameters);
             },
-            renderFromMicrophoneCallback: () => {
+            renderFromMicrophoneCallback: async () => {
                 if (globalAudioCtx === null) {
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback).then(
-                    callback => {
-                        stopCallback = callback;
-                        setPlayState('playing-from-mic');
-                    },
-                    () => setPlayState('stopped')
-                );
+                try {
+                    stopCallback = await setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback, recordingFinishedCallback);
+                    setPlayState('playing-from-mic');
+                }catch(err) {
+                    setPlayState('stopped');
+                }
             },
-            renderFromFileCallback: (file: ArrayBuffer) => {
+            renderFromFileCallback: async (file: ArrayBuffer) => {
                 if (globalAudioCtx === null) {
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                setupSpectrogramFromAudioFile(globalAudioCtx, file, bufferCallback, () =>
-                    setPlayState('stopped')
-                ).then(
-                    callback => {
-                        stopCallback = callback;
-                        setPlayState('playing-from-file');
-                    },
-                    () => setPlayState('stopped')
-                );
+                try {
+                    stopCallback = await setupSpectrogramFromAudioFile(globalAudioCtx, file, bufferCallback, () => setPlayState('stopped'));
+                    setPlayState('playing-from-file');
+                }catch(err) {
+                    setPlayState('stopped');
+                }
             },
         });
     }
