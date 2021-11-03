@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-import { RenderParameters } from '../spectrogram-render';
+import { RenderParameters } from '../../spectrogram-render';
 
 import generateSettingsContainer, { PlayState } from './SettingsContainer';
 

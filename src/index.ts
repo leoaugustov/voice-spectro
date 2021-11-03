@@ -2,7 +2,7 @@ import Recorder from 'opus-recorder';
 import encoderPath from 'opus-recorder/dist/encoderWorker.min.js';
 import debounce from 'lodash.debounce';
 
-import initializeControlsUi from './controls-ui';
+import initializeControlsUi from './components/Controls';
 import { Circular2DBuffer } from './math-util';
 import { SpectrogramGPURenderer, RenderParameters } from './spectrogram-render';
 import { offThreadGenerateSpectrogram } from './worker-util';

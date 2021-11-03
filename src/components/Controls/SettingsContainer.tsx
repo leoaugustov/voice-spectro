@@ -31,9 +31,9 @@ import React, {
 } from 'react';
 
 import Recorder from 'opus-recorder';
-import { GRADIENTS } from '../color-util';
-import { Scale } from '../spectrogram';
-import { RenderParameters } from '../spectrogram-render';
+import { GRADIENTS } from '../../color-util';
+import { Scale } from '../../spectrogram';
+import { RenderParameters } from '../../spectrogram-render';
 
 import generateLabelledSlider from './LabelledSlider';
 
