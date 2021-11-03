@@ -20,7 +20,7 @@ Se tudo der certo, nesse momento os arquivos `localhost+2-key.pem` e `localhost+
 
 **Atenção**, se você estiver **executando a aplicação dentro do WSL no Windows** é necessário instalar o mkcert e rodar o comando `mkcert -install` em ambos os sistemas.
 
-Além disso, é necessário **copiar os certificados gerados no Windows e inseri-los substituindo os gerados pelo WSL**. Para descobrir em qual diretório estão os certificados use o comando `mkcert -CAROOT`. Mais detalhes podemos ser encontrados [neste post](https://www.haveiplayedbowie.today/blog/posts/secure-localhost-with-mkcert/).
+Além disso, é necessário **copiar os certificados gerados no Windows e inseri-los substituindo os gerados pelo WSL**. Para descobrir em qual diretório estão os certificados use o comando `mkcert -CAROOT`. Mais detalhes podem ser encontrados [neste post](https://www.haveiplayedbowie.today/blog/posts/secure-localhost-with-mkcert/).
 
 ### Instale as dependências da aplicação
     $ npm install
