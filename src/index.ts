@@ -3,6 +3,7 @@ import encoderPath from 'opus-recorder/dist/encoderWorker.min.js';
 import debounce from 'lodash.debounce';
 
 import initializeControlsUi from './components/Controls';
+import initializePitchDetectionUi from './components/PitchDetection';
 import { Circular2DBuffer } from './math-util';
 import { SpectrogramGPURenderer, RenderParameters } from './spectrogram-render';
 import { offThreadGenerateSpectrogram } from './worker-util';
@@ -292,11 +293,13 @@ let globalAudioCtx: AudioContext | null = null;
 
 (async () => {
     const controlsContainer = document.querySelector('.controls');
+    const pitchDetectionContainer = document.querySelector('.pitch-detection-container');
     const {
         bufferCallback,
         clearCallback,
         updateRenderParameters,
     } = await spectrogramCallbacksPromise;
+
     if (controlsContainer !== null) {
         let stopCallback: (() => void) | null = null;
         const [setPlayState, recordingFinishedCallback] = initializeControlsUi(controlsContainer, {
@@ -335,5 +338,9 @@ let globalAudioCtx: AudioContext | null = null;
                 }
             },
         });
+    }
+
+    if(pitchDetectionContainer !== null) {
+        initializePitchDetectionUi(pitchDetectionContainer);
     }
 })();
