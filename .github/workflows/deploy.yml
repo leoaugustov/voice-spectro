@@ -30,4 +30,4 @@ jobs:
         with:
           branch: gh-pages
           folder: dist
-          commit-message: Deploy ${GITHUB_REF#refs/tags/}
+          commit-message: Deploy ${{ github.ref_name }}
