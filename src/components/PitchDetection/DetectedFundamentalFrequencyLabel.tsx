@@ -20,6 +20,7 @@ const useStyles = makeStyles({
         backdropFilter: 'blur(8px)',
         borderBottomRightRadius: '3px',
         boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.25)',
+        display: 'none',
     }
 });
 
