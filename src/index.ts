@@ -317,7 +317,7 @@ let globalAudioCtx: AudioContext | null = null;
             },
             renderFromMicrophoneCallback: async () => {
                 if (globalAudioCtx === null) {
-                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
                 try {
                     stopCallback = await setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback, recordingFinishedCallback);
@@ -328,7 +328,7 @@ let globalAudioCtx: AudioContext | null = null;
             },
             renderFromFileCallback: async (file: ArrayBuffer) => {
                 if (globalAudioCtx === null) {
-                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
                 try {
                     stopCallback = await setupSpectrogramFromAudioFile(globalAudioCtx, file, bufferCallback, () => setPlayState('stopped'));
