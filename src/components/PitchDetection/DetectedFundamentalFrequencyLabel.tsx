@@ -1,6 +1,7 @@
 import Tooltip from '@material-ui/core/Tooltip';
 import { makeStyles } from '@material-ui/core/styles';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import PitchFinder from 'pitchfinder';
 
 const useStyles = makeStyles({
     tooltip: {
@@ -20,16 +21,39 @@ const useStyles = makeStyles({
         backdropFilter: 'blur(8px)',
         borderBottomRightRadius: '3px',
         boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.25)',
-        display: 'none',
     }
 });
 
-export default function DetectedFundamentalFrequencyLabel() {
-    const classes = useStyles();
+export default function generareDetectedFundamentalFrequencyLabel(): [() => JSX.Element, (samples: Float32Array) => void] {
+    const detectFundamentalFrequency = PitchFinder.DynamicWavelet();
+    let setFundamentalFrequencyExport: ((fundamentalFrequency: number) => void) | null = null;
 
-    return (
-        <Tooltip title="A frequência fundamental do sinal" classes={{tooltip: classes.tooltip}} arrow>
-            <div className={classes.label}>120 Hz</div>
-        </Tooltip>
-    );
+    const DetectedFundamentalFrequencyLabel = () => {
+        const classes = useStyles();
+        const [fundamentalFrequency, setFundamentalFrequency] = useState(0);
+
+        useEffect(() => {
+            setFundamentalFrequencyExport = setFundamentalFrequency;
+        }, [setFundamentalFrequency]);
+
+        return (
+            <Tooltip title="A frequência fundamental do sinal" classes={{tooltip: classes.tooltip}} arrow>
+                <div className={classes.label}>{fundamentalFrequency.toFixed(0)} Hz</div>
+            </Tooltip>
+        );
+    };
+
+    return [
+        DetectedFundamentalFrequencyLabel,
+        samples => {
+            if(setFundamentalFrequencyExport) {
+                const detectedFrequency = detectFundamentalFrequency(samples);
+                if(detectedFrequency) {
+                    setFundamentalFrequencyExport(detectedFrequency);
+                }
+            }else {
+              throw new Error('Attempt to set fundamental frequency valeu before component mount');
+            }
+        }
+    ];
 }

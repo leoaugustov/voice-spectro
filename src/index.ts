@@ -127,7 +127,8 @@ async function startRenderingSpectrogram(): Promise<{
 async function setupSpectrogramFromMicrophone(
     audioCtx: AudioContext,
     bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>,
-    recordingFinishedCallback: (recordedAudioFile: Blob) => void
+    recordingFinishedCallback: (recordedAudioFile: Blob) => void,
+    setSamplesForPitchDetection: ((samples: Float32Array) => void) | null
 ) {
     const CHANNELS = 1;
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -158,7 +159,7 @@ async function setupSpectrogramFromMicrophone(
             return;
         }
 
-        let mergedBuffer;
+        let mergedBuffer: Float32Array | null = null;
         // Check if we have at least full window to render yet
         if (! (buffers.length < SPECTROGRAM_WINDOW_SIZE / SPECTROGRAM_WINDOW_OVERLAP)) {
             // Merge all the buffers we have so far into a single buffer for rendering
@@ -173,6 +174,9 @@ async function setupSpectrogramFromMicrophone(
 
         // Render the single merged buffer
         if (mergedBuffer) {
+            if(setSamplesForPitchDetection) {
+                setSamplesForPitchDetection(new Float32Array(mergedBuffer));
+            }
             bufferCallbackPromise = bufferCallback({
                 buffer: mergedBuffer,
                 start: 0,
@@ -211,7 +215,8 @@ async function setupSpectrogramFromAudioFile(
     audioCtx: AudioContext,
     arrayBuffer: ArrayBuffer,
     bufferCallback: (bufferData: SpectrogramBufferData) => Promise<Float32Array>,
-    audioEndCallback: () => void
+    audioEndCallback: () => void,
+    setSamplesForPitchDetection: ((samples: Float32Array) => void) | null
 ) {
     const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) =>
         audioCtx.decodeAudioData(
@@ -243,8 +248,10 @@ async function setupSpectrogramFromAudioFile(
     let isStopping = false;
     const playStartTime = performance.now();
     let nextSample = 0;
+    let audioEventCount = 0;
 
     const audioEventCallback = async () => {
+        audioEventCount++;
         const duration = (performance.now() - playStartTime) / 1000;
 
         // Calculate spectrogram up to current point
@@ -253,6 +260,10 @@ async function setupSpectrogramFromAudioFile(
             SPECTROGRAM_WINDOW_SIZE;
 
         if (totalSamples > 0) {
+            if(setSamplesForPitchDetection && audioEventCount % 10 === 0) {
+                setSamplesForPitchDetection(channelsMixedData.slice(nextSample, nextSample + totalSamples));
+            }
+
             const bufferCallbackData = {
                 buffer: channelsMixedData,
                 start: nextSample,
@@ -300,6 +311,11 @@ let globalAudioCtx: AudioContext | null = null;
         updateRenderParameters,
     } = await spectrogramCallbacksPromise;
 
+    let setSamplesForPitchDetection: ((samples: Float32Array) => void) | null = null;
+    if(pitchDetectionContainer !== null) {
+        setSamplesForPitchDetection = initializePitchDetectionUi(pitchDetectionContainer);
+    }
+
     if (controlsContainer !== null) {
         let stopCallback: (() => void) | null = null;
         const [setPlayState, recordingFinishedCallback] = initializeControlsUi(controlsContainer, {
@@ -320,7 +336,12 @@ let globalAudioCtx: AudioContext | null = null;
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
                 try {
-                    stopCallback = await setupSpectrogramFromMicrophone(globalAudioCtx, bufferCallback, recordingFinishedCallback);
+                    stopCallback = await setupSpectrogramFromMicrophone(
+                        globalAudioCtx,
+                        bufferCallback,
+                        recordingFinishedCallback,
+                        setSamplesForPitchDetection
+                    );
                     setPlayState('playing-from-mic');
                 }catch(err) {
                     setPlayState('stopped');
@@ -331,16 +352,18 @@ let globalAudioCtx: AudioContext | null = null;
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
                 try {
-                    stopCallback = await setupSpectrogramFromAudioFile(globalAudioCtx, file, bufferCallback, () => setPlayState('stopped'));
+                    stopCallback = await setupSpectrogramFromAudioFile(
+                        globalAudioCtx,
+                        file,
+                        bufferCallback,
+                        () => setPlayState('stopped'),
+                        setSamplesForPitchDetection
+                    );
                     setPlayState('playing-from-file');
                 }catch(err) {
                     setPlayState('stopped');
                 }
             },
         });
-    }
-
-    if(pitchDetectionContainer !== null) {
-        initializePitchDetectionUi(pitchDetectionContainer);
     }
 })();

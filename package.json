@@ -25,6 +25,7 @@
     "jsfft": "0.0.4",
     "lodash.debounce": "^4.0.8",
     "opus-recorder": "^8.0.5",
+    "pitchfinder": "^2.3.1",
     "react": "^17.0.1",
     "react-dom": "^17.0.1"
   },
