@@ -24,7 +24,7 @@ const useStyles = makeStyles({
     }
 });
 
-export default function generareDetectedFundamentalFrequencyLabel(): [() => JSX.Element, (samples: Float32Array) => void] {
+export default function generateDetectedFundamentalFrequencyLabel(): [() => JSX.Element, (samples: Float32Array) => void] {
     const detectFundamentalFrequency = PitchFinder.DynamicWavelet();
     let setFundamentalFrequencyExport: ((fundamentalFrequency: number) => void) | null = null;
 
@@ -52,7 +52,7 @@ export default function generareDetectedFundamentalFrequencyLabel(): [() => JSX.
                     setFundamentalFrequencyExport(detectedFrequency);
                 }
             }else {
-              throw new Error('Attempt to set fundamental frequency valeu before component mount');
+              throw new Error('Attempt to set fundamental frequency value before component mount');
             }
         }
     ];
