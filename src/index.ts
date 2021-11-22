@@ -4,6 +4,7 @@ import debounce from 'lodash.debounce';
 
 import initializeControlsUi from './components/Controls';
 import initializePitchDetectionUi from './components/PitchDetection';
+import initializePlaybackInfoUi from './components/PlaybackInfo';
 import { Circular2DBuffer } from './math-util';
 import { SpectrogramGPURenderer, RenderParameters } from './spectrogram-render';
 import { offThreadGenerateSpectrogram } from './worker-util';
@@ -305,6 +306,7 @@ let globalAudioCtx: AudioContext | null = null;
 (async () => {
     const controlsContainer = document.querySelector('.controls');
     const pitchDetectionContainer = document.querySelector('.pitch-detection-container');
+    const playbackInfoContainer = document.querySelector('.playback-info-container');
     const {
         bufferCallback,
         clearCallback,
@@ -315,6 +317,16 @@ let globalAudioCtx: AudioContext | null = null;
     if(pitchDetectionContainer !== null) {
         setSamplesForPitchDetection = initializePitchDetectionUi(pitchDetectionContainer);
     }
+
+    let setImportedFileName: ((fileName: string) => void) | null = null;
+    if(playbackInfoContainer !== null) {
+        setImportedFileName = initializePlaybackInfoUi(playbackInfoContainer);
+    }
+    const clearImportedFileName = () => {
+        if(setImportedFileName) {
+            setImportedFileName("");
+        }
+    };
 
     if (controlsContainer !== null) {
         let stopCallback: (() => void) | null = null;
@@ -327,6 +339,7 @@ let globalAudioCtx: AudioContext | null = null;
             },
             clearSpectrogramCallback: () => {
                 clearCallback();
+                clearImportedFileName();
             },
             renderParametersUpdateCallback: (parameters: Partial<RenderParameters>) => {
                 updateRenderParameters(parameters);
@@ -343,11 +356,12 @@ let globalAudioCtx: AudioContext | null = null;
                         setSamplesForPitchDetection
                     );
                     setPlayState('playing-from-mic');
+                    clearImportedFileName();
                 }catch(err) {
                     setPlayState('stopped');
                 }
             },
-            renderFromFileCallback: async (file: ArrayBuffer) => {
+            renderFromFileCallback: async (file: ArrayBuffer, fileName: string) => {
                 if (globalAudioCtx === null) {
                     globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
                 }
@@ -357,9 +371,13 @@ let globalAudioCtx: AudioContext | null = null;
                         file,
                         bufferCallback,
                         () => setPlayState('stopped'),
-                        setSamplesForPitchDetection
+                        setSamplesForPitchDetection,
                     );
                     setPlayState('playing-from-file');
+
+                    if(setImportedFileName) {
+                        setImportedFileName(fileName);
+                    }
                 }catch(err) {
                     setPlayState('stopped');
                 }

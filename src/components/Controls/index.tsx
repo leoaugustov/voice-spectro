@@ -12,7 +12,7 @@ export default function initializeControlsUi(
         clearSpectrogramCallback: () => void;
         renderParametersUpdateCallback: (settings: Partial<RenderParameters>) => void;
         renderFromMicrophoneCallback: () => void;
-        renderFromFileCallback: (file: ArrayBuffer) => void;
+        renderFromFileCallback: (file: ArrayBuffer, fileName: string) => void;
     }
 ): [(playState: PlayState) => void, (recordedAudioFile: Blob) => void] {
     const [SettingsContainer, setPlayState, recordingFinishedCallback] = generateSettingsContainer();

@@ -146,7 +146,7 @@ export interface SettingsContainerProps {
     onClearSpectrogram: () => void;
     onRenderParametersUpdate: (settings: Partial<RenderParameters>) => void;
     onRenderFromMicrophone: () => void;
-    onRenderFromFile: (file: ArrayBuffer) => void;
+    onRenderFromFile: (file: ArrayBuffer, fileName: string) => void;
 }
 
 export type SettingsContainer = (props: SettingsContainerProps) => JSX.Element;
@@ -240,7 +240,7 @@ function generateSettingsContainer(): [
 
                 if (reader.result instanceof ArrayBuffer) {
                     onClearSpectrogram();
-                    await onRenderFromFile(reader.result);
+                    await onRenderFromFile(reader.result, file.name);
                 } else {
                     setPlayState('stopped');
                 }

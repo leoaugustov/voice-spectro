@@ -11,16 +11,8 @@ const useStyles = makeStyles({
         position: 'absolute',
         top: 0,
         right: 0,
-        fontSize: '12px',
         fontWeight: 500,
-        letterSpacing: '0.05em',
-        padding: '6px 12px',
         color: '#ffffff',
-        background: 'rgba(53, 53, 53, 0.75)',
-        ['-webkitBackdropFilter']: 'blur(8px)',
-        backdropFilter: 'blur(8px)',
-        borderBottomRightRadius: '3px',
-        boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.25)',
     }
 });
 
@@ -38,7 +30,7 @@ export default function generateDetectedFundamentalFrequencyLabel(): [() => JSX.
 
         return (
             <Tooltip title="A frequência fundamental do sinal" classes={{tooltip: classes.tooltip}} arrow>
-                <div className={classes.label}>{fundamentalFrequency.toFixed(0)} Hz</div>
+                <div className={`simple-label ${classes.label}`}>{fundamentalFrequency.toFixed(0)} Hz</div>
             </Tooltip>
         );
     };
