@@ -80,6 +80,17 @@
             overflow-y: auto;
         }
 
+        .simple-label {
+            font-size: 12px;
+            letter-spacing: 0.05em;
+            padding: 6px 12px;
+            background: rgba(53, 53, 53, 0.75);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border-bottom-right-radius: 3px;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.25);
+        }
+
         @media (max-width: 800px) {
             .charts-container .separator {
                 display: none;
@@ -103,6 +114,7 @@
         <div class="charts-container">
             <div class="spectrogram">
                 <canvas></canvas>
+                <div class="playback-info-container"></div>
                 <div class="pitch-detection-container"></div>
             </div>
             <div class="separator"></div>
