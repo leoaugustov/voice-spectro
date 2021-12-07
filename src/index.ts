@@ -314,8 +314,11 @@ let globalAudioCtx: AudioContext | null = null;
     } = await spectrogramCallbacksPromise;
 
     let setSamplesForPitchDetection: ((samples: Float32Array) => void) | null = null;
+    let clearDetectedFundamentalFrequency: (() => void) | null = null;
     if(pitchDetectionContainer !== null) {
-        setSamplesForPitchDetection = initializePitchDetectionUi(pitchDetectionContainer);
+        const controlFunctions = initializePitchDetectionUi(pitchDetectionContainer);
+        setSamplesForPitchDetection = controlFunctions[0];
+        clearDetectedFundamentalFrequency = controlFunctions[1];
     }
 
     let setImportedFileName: ((fileName: string) => void) | null = null;
@@ -340,6 +343,9 @@ let globalAudioCtx: AudioContext | null = null;
             clearSpectrogramCallback: () => {
                 clearCallback();
                 clearImportedFileName();
+                if(clearDetectedFundamentalFrequency) {
+                    clearDetectedFundamentalFrequency();
+                }
             },
             renderParametersUpdateCallback: (parameters: Partial<RenderParameters>) => {
                 updateRenderParameters(parameters);
